@@ -8,25 +8,35 @@
 require('dotenv').config();
 const mysql = require('mysql2/promise');
 
+// Build pool configuration
+const poolConfig = {
+  host:               process.env.DB_HOST     || 'localhost',
+  port:               parseInt(process.env.DB_PORT) || 3306,
+  user:               process.env.DB_USER     || 'root',
+  password:           process.env.DB_PASSWORD || '',
+  database:           process.env.DB_NAME     || 'student_portal',
+  waitForConnections: true,
+  connectionLimit:   10,       // max 10 simultaneous connections
+  queueLimit:        0,        // unlimited queue
+  timezone:          '+00:00'  // store dates as UTC
+};
+
+// Enable SSL when using cloud databases like TiDB Cloud or in production
+if (process.env.DB_HOST && !process.env.DB_HOST.includes('localhost')) {
+  poolConfig.ssl = {
+    rejectUnauthorized: true
+  };
+}
+
 // createPool → mysql2 will manage up to `connectionLimit`
 // connections automatically.
-const pool = mysql.createPool({
-  host:              process.env.DB_HOST     || 'localhost',
-  port:              parseInt(process.env.DB_PORT) || 3306,
-  user:              process.env.DB_USER     || 'root',
-  password:          process.env.DB_PASSWORD || '',
-  database:          process.env.DB_NAME     || 'student_portal',
-  waitForConnections: true,
-  connectionLimit:   10,      // max 10 simultaneous connections
-  queueLimit:        0,       // unlimited queue
-  timezone:          '+00:00' // store dates as UTC
-});
+const pool = mysql.createPool(poolConfig);
 
 // Test the connection when the server starts
 async function testConnection() {
   try {
     const conn = await pool.getConnection();
-    console.log('✅  MySQL connected successfully to database:', process.env.DB_NAME);
+    console.log('✅  MySQL connected successfully to database:', process.env.DB_NAME || 'student_portal');
     conn.release();           // always release the connection back to pool
   } catch (err) {
     console.error('❌  MySQL connection failed:', err.message);
