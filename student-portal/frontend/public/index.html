@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Portal – Login</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════
+       STUDENT LOGIN PAGE
+       This is the first page students see.
+       ─────────────────────────────────────
+       Steps:
+       1. Enter Student ID and Password
+       2. Solve the math CAPTCHA
+       3. Click Login
+  ════════════════════════════════════════ -->
+  <div class="login-page">
+
+    <!-- Logo / Heading -->
+    <div class="login-logo">
+      <div class="icon">🎓</div>
+      <h1>Student Portal</h1>
+      <p>Login to view your marks and results</p>
+    </div>
+
+    <!-- Login Card -->
+    <div class="login-card">
+      <h2 style="font-size:1.2rem; font-weight:700; margin-bottom:6px;">Welcome Back!</h2>
+      <p style="color:#64748b; font-size:0.85rem; margin-bottom:24px;">
+        Enter your credentials to access your dashboard
+      </p>
+
+      <!-- Error / Success Message (hidden by default) -->
+      <div id="alertBox" class="alert" style="display:none;"></div>
+
+      <!-- LOGIN FORM -->
+      <form id="loginForm" novalidate>
+
+        <!-- Student ID -->
+        <div class="form-group">
+          <label for="studentId">🪪 Student ID</label>
+          <input
+            type="text"
+            id="studentId"
+            placeholder="e.g. STU-0001"
+            required
+            autocomplete="username"
+          />
+        </div>
+
+        <!-- Password -->
+        <div class="form-group">
+          <label for="password">🔒 Password</label>
+          <input
+            type="password"
+            id="password"
+            placeholder="Enter your password"
+            required
+            autocomplete="current-password"
+          />
+        </div>
+
+        <!-- CAPTCHA -->
+        <div class="form-group">
+          <label>🤖 CAPTCHA Verification</label>
+          <div class="captcha-box">
+            <span class="captcha-question" id="captchaQuestion">Loading...</span>
+            <button type="button" class="captcha-refresh" id="refreshCaptcha" title="Refresh CAPTCHA">
+              🔄
+            </button>
+          </div>
+          <input
+            type="number"
+            id="captchaAnswer"
+            placeholder="Type the answer here"
+            required
+          />
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="btn btn-primary btn-full" id="loginBtn">
+          Login →
+        </button>
+
+      </form>
+
+      <!-- Link to admin panel -->
+      <div style="text-align:center; margin-top:20px;">
+        <a href="/admin" style="color:#64748b; font-size:0.8rem; text-decoration:none;">
+          🔐 Admin Panel
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ═══════════════════════════════════════════════════════
+    //  index.html  –  Student Login JavaScript
+    //  All the client-side logic for the login page
+    // ═══════════════════════════════════════════════════════
+
+    const API = ''; // empty = same origin (same server serves frontend+backend)
+
+    // DOM Elements
+    const loginForm      = document.getElementById('loginForm');
+    const loginBtn       = document.getElementById('loginBtn');
+    const alertBox       = document.getElementById('alertBox');
+    const captchaQ       = document.getElementById('captchaQuestion');
+    const refreshCaptcha = document.getElementById('refreshCaptcha');
+
+    // ── Show alert message ──────────────────────────────────
+    function showAlert(message, type = 'error') {
+      alertBox.className = `alert alert-${type}`;
+      alertBox.style.display = 'flex';
+      const icons = { error: '❌', success: '✅', info: 'ℹ️', warning: '⚠️' };
+      alertBox.innerHTML = `<span>${icons[type]}</span><span>${message}</span>`;
+    }
+
+    function hideAlert() {
+      alertBox.style.display = 'none';
+    }
+
+    // ── Fetch CAPTCHA from backend ──────────────────────────
+    async function loadCaptcha() {
+      try {
+        captchaQ.textContent = 'Loading...';
+        // GET /api/captcha → { success: true, question: "3 + 7 = ?" }
+        const res  = await fetch(`${API}/api/captcha`);
+        const data = await res.json();
+        if (data.success) {
+          captchaQ.textContent = data.question;
+          document.getElementById('captchaAnswer').value = '';
+        }
+      } catch (err) {
+        captchaQ.textContent = 'Error loading CAPTCHA';
+        console.error('CAPTCHA fetch error:', err);
+      }
+    }
+
+    // Refresh button
+    refreshCaptcha.addEventListener('click', loadCaptcha);
+
+    // ── Handle Login Form Submit ────────────────────────────
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();  // prevent normal form submission
+      hideAlert();
+
+      const studentId    = document.getElementById('studentId').value.trim();
+      const password     = document.getElementById('password').value;
+      const captchaAnswer = document.getElementById('captchaAnswer').value;
+
+      // Basic client-side validation
+      if (!studentId || !password || !captchaAnswer) {
+        showAlert('Please fill in all fields including the CAPTCHA.', 'error');
+        return;
+      }
+
+      // Show loading state
+      loginBtn.disabled = true;
+      loginBtn.innerHTML = '<span class="loader"></span> Logging in...';
+
+      try {
+        // POST /api/student/login with credentials
+        const res = await fetch(`${API}/api/student/login`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ student_id: studentId, password, captchaAnswer }),
+          credentials: 'include'  // include cookies for session
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          showAlert('Login successful! Redirecting...', 'success');
+          // Wait 800ms then redirect to dashboard
+          setTimeout(() => { window.location.href = '/dashboard'; }, 800);
+        } else {
+          showAlert(data.message || 'Login failed. Please try again.', 'error');
+          // Load a fresh CAPTCHA on failure
+          loadCaptcha();
+        }
+      } catch (err) {
+        showAlert('Network error. Make sure the server is running.', 'error');
+        console.error('Login error:', err);
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = 'Login →';
+      }
+    });
+
+    // Load CAPTCHA when page first opens
+    window.addEventListener('DOMContentLoaded', () => {
+      loadCaptcha();
+
+      // If already logged in, go to dashboard
+      fetch(`${API}/api/student/me`, { credentials: 'include' })
+        .then(r => r.json())
+        .then(d => { if (d.success) window.location.href = '/dashboard'; })
+        .catch(() => {});
+    });
+  </script>
+
+</body>
+</html>

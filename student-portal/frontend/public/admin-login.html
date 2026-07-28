@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Login – Student Portal</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════
+       ADMIN LOGIN PAGE
+       Default credentials:
+         Username: admin
+         Password: password
+       (Change this after first login!)
+  ════════════════════════════════════════ -->
+  <div class="login-page" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%);">
+
+    <div class="login-logo">
+      <div class="icon">🛡️</div>
+      <h1>Admin Panel</h1>
+      <p>Student Portal Administration</p>
+    </div>
+
+    <div class="login-card">
+      <h2 style="font-size:1.2rem; font-weight:700; margin-bottom:6px;">Admin Login</h2>
+      <p style="color:#64748b; font-size:0.85rem; margin-bottom:24px;">
+        Access restricted to administrators only
+      </p>
+
+      <div id="alertBox" class="alert" style="display:none;"></div>
+
+      <form id="adminLoginForm" novalidate>
+        <div class="form-group">
+          <label for="username">👤 Username</label>
+          <input
+            type="text"
+            id="username"
+            placeholder="admin"
+            required
+            autocomplete="username"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="password">🔒 Password</label>
+          <input
+            type="password"
+            id="password"
+            placeholder="Enter admin password"
+            required
+            autocomplete="current-password"
+          />
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full" id="loginBtn"
+          style="background:#1e293b;">
+          Login to Admin Panel →
+        </button>
+      </form>
+
+      <div style="text-align:center; margin-top:20px;">
+        <a href="/" style="color:#64748b; font-size:0.8rem; text-decoration:none;">
+          ← Back to Student Login
+        </a>
+      </div>
+
+      <!-- Default credentials hint (remove in production!) -->
+      <div style="margin-top:16px; padding:12px; background:#fffbeb; border-radius:8px;
+                  border:1px solid #fde68a; font-size:0.78rem; color:#92400e;">
+        ⚠️ <strong>Default credentials:</strong> admin / password<br>
+        Change these in the database after first login!
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const API = '';
+
+    function showAlert(message, type = 'error') {
+      const box = document.getElementById('alertBox');
+      box.className = `alert alert-${type}`;
+      box.style.display = 'flex';
+      const icons = { error: '❌', success: '✅', info: 'ℹ️' };
+      box.innerHTML = `<span>${icons[type]}</span><span>${message}</span>`;
+    }
+
+    document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const btn      = document.getElementById('loginBtn');
+
+      if (!username || !password) {
+        showAlert('Please enter username and password.', 'error');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loader"></span> Logging in...';
+
+      try {
+        const res  = await fetch(`${API}/api/admin/login`, {
+          method:      'POST',
+          headers:     { 'Content-Type': 'application/json' },
+          body:        JSON.stringify({ username, password }),
+          credentials: 'include'
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          showAlert('Login successful! Redirecting...', 'success');
+          setTimeout(() => { window.location.href = '/admin/dashboard'; }, 700);
+        } else {
+          showAlert(data.message || 'Invalid credentials.', 'error');
+        }
+      } catch (err) {
+        showAlert('Network error. Is the server running?', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Login to Admin Panel →';
+      }
+    });
+
+    // Redirect if already logged in
+    window.addEventListener('DOMContentLoaded', () => {
+      fetch(`${API}/api/admin/check`, { credentials: 'include' })
+        .then(r => r.json())
+        .then(d => { if (d.success) window.location.href = '/admin/dashboard'; })
+        .catch(() => {});
+    });
+  </script>
+
+</body>
+</html>

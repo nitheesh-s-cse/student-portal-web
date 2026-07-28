@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Dashboard</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════
+       STUDENT DASHBOARD
+       Shows after student logs in.
+       - Welcome banner with name
+       - Stats: Total, Percentage, Subjects
+       - Subject-wise marks table
+       - Logout button
+  ════════════════════════════════════════ -->
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <span>🎓</span> Student Portal
+    </div>
+    <div class="navbar-right">
+      <span class="navbar-user" id="navUser">Loading...</span>
+      <button class="btn btn-outline btn-sm" id="logoutBtn"
+        style="color:white; border-color:rgba(255,255,255,0.5);">
+        🚪 Logout
+      </button>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <!-- Welcome Banner -->
+    <div class="welcome-banner" id="welcomeBanner">
+      <div class="avatar">👤</div>
+      <div>
+        <h2 id="welcomeName">Welcome!</h2>
+        <p id="welcomeDetails">Loading your details...</p>
+      </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="stats-row" id="statsRow" style="display:none;">
+      <div class="stat-card">
+        <div class="stat-value" id="statTotal">—</div>
+        <div class="stat-label">Total Marks</div>
+      </div>
+      <div class="stat-card" style="border-top-color:#16a34a;">
+        <div class="stat-value" style="color:#16a34a;" id="statPercent">—</div>
+        <div class="stat-label">Percentage</div>
+      </div>
+      <div class="stat-card" style="border-top-color:#d97706;">
+        <div class="stat-value" style="color:#d97706;" id="statSubjects">—</div>
+        <div class="stat-label">Subjects</div>
+      </div>
+      <div class="stat-card" style="border-top-color:#7c3aed;">
+        <div class="stat-value" style="color:#7c3aed;" id="statGrade">—</div>
+        <div class="stat-label">Overall Grade</div>
+      </div>
+    </div>
+
+    <!-- Marks Table Card -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📊 Subject-wise Marks</div>
+        <div class="card-subtitle">Your academic performance for this semester</div>
+      </div>
+
+      <!-- Loading / Error State -->
+      <div id="marksLoading" style="text-align:center; padding:40px; color:#64748b;">
+        ⏳ Loading marks...
+      </div>
+
+      <!-- Empty State -->
+      <div id="marksEmpty" class="empty-state" style="display:none;">
+        <div class="empty-icon">📭</div>
+        <p>No marks available yet.<br>Your admin hasn't entered your marks.</p>
+      </div>
+
+      <!-- Marks Table (hidden until data loads) -->
+      <div id="marksTableWrapper" style="display:none;">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Subject</th>
+                <th>Marks Obtained</th>
+                <th>Max Marks</th>
+                <th>Percentage</th>
+                <th>Grade</th>
+              </tr>
+            </thead>
+            <tbody id="marksTableBody">
+              <!-- Rows injected by JavaScript -->
+            </tbody>
+            <!-- Total Row -->
+            <tfoot>
+              <tr style="background:#f8fafc; font-weight:700;">
+                <td colspan="2" style="padding:12px 16px;">📌 TOTAL</td>
+                <td style="padding:12px 16px;" id="footerObtained">—</td>
+                <td style="padding:12px 16px;" id="footerMax">—</td>
+                <td style="padding:12px 16px;" id="footerPercent">—</td>
+                <td style="padding:12px 16px;" id="footerGrade">—</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <!-- Print button -->
+        <div style="margin-top:16px; text-align:right;">
+          <button class="btn btn-outline btn-sm" onclick="window.print()">
+            🖨️ Print / Save as PDF
+          </button>
+        </div>
+      </div>
+
+    </div>
+    <!-- end card -->
+
+  </div><!-- end container -->
+
+  <script>
+    // ═══════════════════════════════════════════════════════
+    //  dashboard.html  –  Student Dashboard JavaScript
+    // ═══════════════════════════════════════════════════════
+
+    const API = '';
+
+    // ── Grade badge HTML ────────────────────────────────────
+    function gradeBadge(grade) {
+      const classMap = {
+        'O':  'grade-O',
+        'A+': 'grade-Ap',
+        'A':  'grade-A',
+        'B+': 'grade-Bp',
+        'B':  'grade-B',
+        'C':  'grade-C',
+        'F':  'grade-F'
+      };
+      const cls = classMap[grade] || 'grade-C';
+      return `<span class="grade-badge ${cls}">${grade}</span>`;
+    }
+
+    // ── Overall letter grade from percentage ────────────────
+    function overallGrade(pct) {
+      const p = parseFloat(pct);
+      if (p >= 90) return 'O';
+      if (p >= 80) return 'A+';
+      if (p >= 70) return 'A';
+      if (p >= 60) return 'B+';
+      if (p >= 50) return 'B';
+      if (p >= 40) return 'C';
+      return 'F';
+    }
+
+    // ── Load student profile ────────────────────────────────
+    async function loadProfile() {
+      try {
+        const res  = await fetch(`${API}/api/student/me`, { credentials: 'include' });
+        const data = await res.json();
+
+        if (!data.success) {
+          // Not logged in — redirect to login
+          window.location.href = '/';
+          return;
+        }
+
+        const s = data.student;
+        document.getElementById('navUser').textContent = s.name;
+        document.getElementById('welcomeName').textContent = `Welcome, ${s.name}! 👋`;
+        document.getElementById('welcomeDetails').textContent =
+          `Student ID: ${s.student_id}  |  Class: ${s.class}`;
+        document.title = `${s.name}'s Dashboard`;
+
+        // Load marks after we know student is logged in
+        loadMarks();
+      } catch (err) {
+        console.error('Profile load error:', err);
+        window.location.href = '/';
+      }
+    }
+
+    // ── Load marks ──────────────────────────────────────────
+    async function loadMarks() {
+      try {
+        const res  = await fetch(`${API}/api/student/marks`, { credentials: 'include' });
+        const data = await res.json();
+
+        document.getElementById('marksLoading').style.display = 'none';
+
+        if (!data.success) {
+          document.getElementById('marksEmpty').style.display = 'block';
+          return;
+        }
+
+        if (!data.marks || data.marks.length === 0) {
+          document.getElementById('marksEmpty').style.display = 'block';
+          return;
+        }
+
+        // Show stats
+        document.getElementById('statsRow').style.display = 'grid';
+        document.getElementById('statTotal').textContent =
+          `${data.totalObtained}/${data.totalMax}`;
+        document.getElementById('statPercent').textContent = `${data.percentage}%`;
+        document.getElementById('statSubjects').textContent = data.marks.length;
+        document.getElementById('statGrade').textContent = overallGrade(data.percentage);
+
+        // Build table rows
+        const tbody = document.getElementById('marksTableBody');
+        tbody.innerHTML = '';
+
+        data.marks.forEach((m, i) => {
+          const pct = ((m.marks_obtained / m.max_marks) * 100).toFixed(1);
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${i + 1}</td>
+            <td><strong>${m.subject_name}</strong></td>
+            <td>${m.marks_obtained}</td>
+            <td>${m.max_marks}</td>
+            <td>${pct}%</td>
+            <td>${gradeBadge(m.grade)}</td>
+          `;
+          tbody.appendChild(row);
+        });
+
+        // Footer totals
+        document.getElementById('footerObtained').textContent = data.totalObtained;
+        document.getElementById('footerMax').textContent      = data.totalMax;
+        document.getElementById('footerPercent').textContent  = `${data.percentage}%`;
+        document.getElementById('footerGrade').innerHTML      =
+          gradeBadge(overallGrade(data.percentage));
+
+        // Show the table
+        document.getElementById('marksTableWrapper').style.display = 'block';
+
+      } catch (err) {
+        console.error('Marks load error:', err);
+        document.getElementById('marksLoading').textContent = '❌ Failed to load marks.';
+      }
+    }
+
+    // ── Logout ──────────────────────────────────────────────
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      if (!confirm('Are you sure you want to logout?')) return;
+      try {
+        await fetch(`${API}/api/student/logout`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+      } finally {
+        window.location.href = '/';
+      }
+    });
+
+    // ── On page load ────────────────────────────────────────
+    window.addEventListener('DOMContentLoaded', loadProfile);
+  </script>
+
+</body>
+</html>
