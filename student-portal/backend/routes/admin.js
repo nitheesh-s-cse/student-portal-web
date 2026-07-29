@@ -18,6 +18,40 @@ const router   = express.Router();
 const db       = require('../db');
 const { requireAdminLogin } = require('../middleware/auth');
 
+function getBodyValue(body, names, fallback = undefined) {
+  if (!body) return fallback;
+  for (const name of names) {
+    if (Object.prototype.hasOwnProperty.call(body, name) && body[name] !== undefined && body[name] !== null && body[name] !== '') {
+      return body[name];
+    }
+  }
+  return fallback;
+}
+
+function normalizeStudentRow(student) {
+  if (!student) return student;
+  return {
+    ...student,
+    student_id: student.student_id ?? student.studentId,
+    studentId: student.student_id ?? student.studentId,
+    class: student.class ?? student.className,
+    className: student.class ?? student.className
+  };
+}
+
+function normalizeMarkRow(mark) {
+  if (!mark) return mark;
+  return {
+    ...mark,
+    subject_name: mark.subject_name ?? mark.subjectName,
+    subjectName: mark.subject_name ?? mark.subjectName,
+    marks_obtained: mark.marks_obtained ?? mark.marksObtained,
+    marksObtained: mark.marks_obtained ?? mark.marksObtained,
+    max_marks: mark.max_marks ?? mark.maxMarks,
+    maxMarks: mark.max_marks ?? mark.maxMarks
+  };
+}
+
 // ── Helper: generate a student ID like STU-0042 ──────────────
 async function generateStudentId() {
   // Find the highest existing numeric suffix
@@ -114,7 +148,8 @@ router.get('/check', (req, res) => {
 //  POST /api/admin/add-student   [PROTECTED]
 // ════════════════════════════════════════════
 router.post('/add-student', requireAdminLogin, async (req, res) => {
-  const { name, class: studentClass } = req.body;
+  const name = getBodyValue(req.body, ['name']);
+  const studentClass = getBodyValue(req.body, ['class', 'className']);
 
   if (!name || !studentClass) {
     return res.status(400).json({ success: false, message: 'Name and class are required.' });
@@ -156,7 +191,7 @@ router.get('/students', requireAdminLogin, async (req, res) => {
     const [rows] = await db.query(
       'SELECT student_id, name, class, created_at FROM students ORDER BY created_at DESC'
     );
-    return res.json({ success: true, students: rows });
+    return res.json({ success: true, students: rows.map(normalizeStudentRow) });
   } catch (err) {
     console.error('Get students error:', err);
     return res.status(500).json({ success: false, message: 'Server error.' });
@@ -175,7 +210,7 @@ router.get('/students/:id', requireAdminLogin, async (req, res) => {
     if (rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Student not found.' });
     }
-    return res.json({ success: true, student: rows[0] });
+    return res.json({ success: true, student: normalizeStudentRow(rows[0]) });
   } catch (err) {
     console.error('Get student error:', err);
     return res.status(500).json({ success: false, message: 'Server error.' });
@@ -188,7 +223,10 @@ router.get('/students/:id', requireAdminLogin, async (req, res) => {
 //  If a record for that subject+student exists → UPDATE, else INSERT
 // ════════════════════════════════════════════
 router.post('/marks', requireAdminLogin, async (req, res) => {
-  const { student_id, subject_name, marks_obtained, max_marks } = req.body;
+  const student_id = getBodyValue(req.body, ['student_id', 'studentId']);
+  const subject_name = getBodyValue(req.body, ['subject_name', 'subjectName']);
+  const marks_obtained = getBodyValue(req.body, ['marks_obtained', 'marksObtained']);
+  const max_marks = getBodyValue(req.body, ['max_marks', 'maxMarks']);
 
   if (!student_id || !subject_name || marks_obtained == null || !max_marks) {
     return res.status(400).json({ success: false, message: 'All fields are required.' });
@@ -241,10 +279,13 @@ router.get('/marks/:studentId', requireAdminLogin, async (req, res) => {
       'SELECT * FROM marks WHERE student_id = ? ORDER BY subject_name',
       [req.params.studentId]
     );
-    const marksWithGrade = rows.map(r => ({
-      ...r,
-      grade: getGrade(r.marks_obtained, r.max_marks)
-    }));
+    const marksWithGrade = rows.map(r => {
+      const normalized = normalizeMarkRow(r);
+      return {
+        ...normalized,
+        grade: getGrade(normalized.marks_obtained, normalized.max_marks)
+      };
+    });
     return res.json({ success: true, marks: marksWithGrade });
   } catch (err) {
     console.error('Get marks error:', err);

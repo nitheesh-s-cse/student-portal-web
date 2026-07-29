@@ -13,6 +13,40 @@ const router  = express.Router();
 const db      = require('../db');
 const { requireStudentLogin } = require('../middleware/auth');
 
+function getBodyValue(body, names, fallback = undefined) {
+  if (!body) return fallback;
+  for (const name of names) {
+    if (Object.prototype.hasOwnProperty.call(body, name) && body[name] !== undefined && body[name] !== null && body[name] !== '') {
+      return body[name];
+    }
+  }
+  return fallback;
+}
+
+function normalizeStudentRow(student) {
+  if (!student) return student;
+  return {
+    ...student,
+    student_id: student.student_id ?? student.studentId,
+    studentId: student.student_id ?? student.studentId,
+    class: student.class ?? student.className,
+    className: student.class ?? student.className
+  };
+}
+
+function normalizeMarkRow(mark) {
+  if (!mark) return mark;
+  return {
+    ...mark,
+    subject_name: mark.subject_name ?? mark.subjectName,
+    subjectName: mark.subject_name ?? mark.subjectName,
+    marks_obtained: mark.marks_obtained ?? mark.marksObtained,
+    marksObtained: mark.marks_obtained ?? mark.marksObtained,
+    max_marks: mark.max_marks ?? mark.maxMarks,
+    maxMarks: mark.max_marks ?? mark.maxMarks
+  };
+}
+
 // ── Helper: letter grade from percentage ─────────────────────
 function getGrade(obtained, max) {
   const pct = (obtained / max) * 100;
@@ -30,7 +64,9 @@ function getGrade(obtained, max) {
 //  Body: { student_id, password, captchaAnswer }
 // ════════════════════════════════════════════
 router.post('/login', async (req, res) => {
-  const { student_id, password, captchaAnswer } = req.body;
+  const student_id = getBodyValue(req.body, ['student_id', 'studentId']);
+  const password = getBodyValue(req.body, ['password']);
+  const captchaAnswer = getBodyValue(req.body, ['captchaAnswer', 'captcha_answer']);
 
   // ── Step 1: Validate input fields ────────────────────────
   if (!student_id || !password || captchaAnswer == null) {
@@ -106,20 +142,20 @@ router.post('/login', async (req, res) => {
     }
 
     // ── Step 5: Save to session ───────────────────────────
-    req.session.student = {
+    req.session.student = normalizeStudentRow({
       student_id: student.student_id,
       name:       student.name,
       class:      student.class
-    };
+    });
 
     return res.json({
       success: true,
       message: `Welcome, ${student.name}!`,
-      student: {
+      student: normalizeStudentRow({
         student_id: student.student_id,
         name:       student.name,
         class:      student.class
-      }
+      })
     });
   } catch (err) {
     console.error('Student login error:', err);
@@ -176,14 +212,18 @@ router.get('/marks', requireStudentLogin, async (req, res) => {
     let totalMax      = 0;
 
     const marksWithGrade = rows.map(r => {
-      totalObtained += r.marks_obtained;
-      totalMax      += r.max_marks;
+      const normalized = normalizeMarkRow(r);
+      totalObtained += normalized.marks_obtained;
+      totalMax      += normalized.max_marks;
       return {
-        id:             r.id,
-        subject_name:   r.subject_name,
-        marks_obtained: r.marks_obtained,
-        max_marks:      r.max_marks,
-        grade:          getGrade(r.marks_obtained, r.max_marks)
+        id:             normalized.id,
+        subject_name:   normalized.subject_name,
+        subjectName:    normalized.subjectName,
+        marks_obtained: normalized.marks_obtained,
+        marksObtained:  normalized.marksObtained,
+        max_marks:      normalized.max_marks,
+        maxMarks:       normalized.maxMarks,
+        grade:          getGrade(normalized.marks_obtained, normalized.max_marks)
       };
     });
 
