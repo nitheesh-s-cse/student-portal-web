@@ -186,17 +186,7 @@ The backend is already structured for hosting platforms such as Railway or Rende
 
 ### Step 6: First Login (Admin)
 
-**Default Admin Credentials:**
-- Username: `admin`
-- Password: `password`
-
-> ⚠️ Change this after first login! Update the hash in MySQL:
-> ```sql
-> -- Generate a new hash using Node.js first:
-> -- node -e "const b=require('bcrypt'); b.hash('NewPass@123',10).then(h=>console.log(h));"
-> -- Then run in MySQL:
-> UPDATE admin SET password_hash = 'PASTE_NEW_HASH_HERE' WHERE username = 'admin';
-> ```
+Use the admin credentials you configured during database setup to log in at the admin panel.
 
 ---
 
@@ -431,16 +421,7 @@ Example: `requireAdminLogin` checks if admin session exists before allowing acce
 
 ---
 
-## 👥 Default Credentials
-
-| Role | ID/Username | Password |
-|---|---|---|
-| Admin | `admin` | `password` |
-| Students | Auto-generated (e.g. `STU-0001`) | Auto-generated (shown once) |
-
----
-
-## 📄 License
+##  License
 
 MIT License — Free to use for educational purposes.
 
