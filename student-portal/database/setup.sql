@@ -14,7 +14,7 @@ USE student_portal;
 -- ============================================================
 -- 2. TABLE: admin
 --    Stores admin login credentials.
---    An initial admin account is seeded below.
+--    Create your admin account manually after setup (see section 5).
 -- ============================================================
 CREATE TABLE IF NOT EXISTS admin (
   id            INT AUTO_INCREMENT PRIMARY KEY,
@@ -53,15 +53,21 @@ CREATE TABLE IF NOT EXISTS marks (
 );
 
 -- ============================================================
--- 5. Seed: admin account
---    Replace the placeholder hash below with your own bcrypt hash
---    before running this script in production.
---    Generate a hash: node -e "require('bcrypt').hash('YourPassword',10).then(h=>console.log(h))"
+-- 5. Create admin account (NO default credentials)
+--    Run this command AFTER setup to create your admin user.
+--    Replace YOUR_USERNAME and YOUR_PASSWORD with your own values.
+--
+--    Generate a bcrypt hash first:
+--    node -e "require('bcrypt').hash('YourPassword',10).then(h=>console.log(h))"
+--
+--    Then run this SQL (replace the hash with your generated one):
+--    INSERT INTO admin (username, password_hash) VALUES (
+--      'your_username',
+--      '$2b$10$YOUR_GENERATED_HASH_HERE'
+--    );
 -- ============================================================
-INSERT INTO admin (username, password_hash) VALUES (
-  'admin',
-  '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
-) ON DUPLICATE KEY UPDATE id = id;
+
+-- (No default admin is inserted. Create your own using the steps above.)
 
 -- ============================================================
 -- 6. Verify everything was created

@@ -186,7 +186,18 @@ The backend is already structured for hosting platforms such as Railway or Rende
 
 ### Step 6: First Login (Admin)
 
-Use the admin credentials you configured during database setup to log in at the admin panel.
+After running `setup.sql`, create your admin account manually (no default credentials are provided):
+
+```bash
+# 1. Generate a bcrypt hash for your password
+cd backend
+node -e "require('bcrypt').hash('YourPassword',10).then(h=>console.log(h))"
+
+# 2. Insert the admin user into the database
+mysql -u root -p student_portal -e "INSERT INTO admin (username, password_hash) VALUES ('your_username', 'YOUR_HASH_HERE');"
+```
+
+Then log in at the admin panel using the credentials you just created.
 
 ---
 
