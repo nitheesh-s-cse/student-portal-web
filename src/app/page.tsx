@@ -169,32 +169,6 @@ export default function Home() {
           ))}
         </div>
 
-        {/* Default Credentials */}
-        <div style={{
-          background: '#fffbeb',
-          border: '2px solid #fde68a',
-          borderRadius: '12px',
-          padding: '20px',
-          marginBottom: '24px'
-        }}>
-          <h3 style={{ color: '#92400e', fontSize: '0.9rem', fontWeight: 700, margin: '0 0 12px' }}>
-            🔑 Default Admin Credentials
-          </h3>
-          <div style={{ display: 'flex', gap: '24px', fontSize: '0.88rem' }}>
-            <div>
-              <span style={{ color: '#78716c' }}>Username: </span>
-              <code style={{ fontWeight: 700, color: '#1e293b' }}>admin</code>
-            </div>
-            <div>
-              <span style={{ color: '#78716c' }}>Password: </span>
-              <code style={{ fontWeight: 700, color: '#1e293b' }}>password</code>
-            </div>
-          </div>
-          <p style={{ fontSize: '0.75rem', color: '#92400e', margin: '8px 0 0' }}>
-            ⚠️ Change these in production! See README.md for instructions.
-          </p>
-        </div>
-
         <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem' }}>
           📖 See <strong>student-portal/README.md</strong> for full setup guide,
           API reference, and Railway/Vercel deployment instructions.
